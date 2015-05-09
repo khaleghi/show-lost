@@ -6,19 +6,20 @@ HOST=
 while getopts ":p:h:H" opt; do
   case $opt in
     p)
+      [[ ! "$UID" = "0" ]] && echo "Must be super-user. See $0 -H" >&2 && exit 1
       [[ ! "$OPTARG" =~ ^[0-9][0-9]*$ ]] && echo "Invalid port number. See $0 -H" >&2 && exit 1
       PORT=$OPTARG 
       ;;
     h)
       ping -c1 -W2 $OPTARG 1>/dev/null 2>/dev/null
-      [ ! -z $? ] && echo "Invalid or unreachable host. See $0 -H" && exit 1 
+      [ ! "$?" = "0" ] && echo "Invalid or unreachable host. See $0 -H" && exit 1 
       HOST=$OPTARG
       ;;
     H)
       echo "$0 - Show packet lost percentage."
       echo "Usage: $0 [ -h <host> -p <port> | -h <host> ]"
-      echo "     -p <port>    Show SYN-ACK losts for SYN ping to <port>. (<host> is required.)"
-      echo "     -h <host>    Ping target address. (Default is 8.8.8.8)"
+      echo "     -p <port>    Show SYN-ACK losts for SYN ping to <port>. (<host> is required. Must be super-user.)"
+      echo "     -h <host>    Ping target HOSTess. (Default is 8.8.8.8)"
       ;;
     \?)
       echo "Invalid option: -$OPTARG. See $0 -h" >&2 && exit 1
@@ -33,17 +34,23 @@ done
 [ -z "$HOST" ] && HOST="8.8.8.8"
 
 
-echo PORT=$PORT HOST=$HOST
-exit
+#echo PORT=$PORT HOST=$HOST
 
-addr="$1"
-[ -z "$1" ] && addr="8.8.8.8"
-
-echo Packet lost percentage for $addr
+if [ -z "$PORT" ]
+then
+  echo Ping lost percentage for $HOST
+else
+  echo SYN-ACK lost percentage for $HOST:$PORT
+fi
 
 while [ 1=1 ]
-do 
-  lost=`ping -i.2 -c10 $addr | grep -Po "\d+%" | grep -Po "\d+"`
+ do 
+  if [ -z "$PORT" ]
+  then
+    lost=`ping -i.2 -c10 $HOST | grep -Po "\d+%" | grep -Po "\d+"`
+  else
+    lost=`hping3 -i u200 -c 10 -Sp $PORT $HOST  2>&1 | grep -Po "\d+%" | grep -Po "\d+"`
+  fi
   echo -ne "$lost "; 
   for i in `seq 1 $((lost/3))`
   do 
@@ -51,5 +58,6 @@ do
   done
   echo 
 done
+
 
 
