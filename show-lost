@@ -20,6 +20,7 @@ while getopts ":p:h:H" opt; do
       echo "Usage: $0 [ -h <host> -p <port> | -h <host> ]"
       echo "     -p <port>    Show SYN-ACK losts for SYN ping to <port>. (<host> is required. Must be super-user.)"
       echo "     -h <host>    Ping target HOSTess. (Default is 8.8.8.8)"
+      exit
       ;;
     \?)
       echo "Invalid option: -$OPTARG. See $0 -h" >&2 && exit 1
